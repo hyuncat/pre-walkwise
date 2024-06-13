@@ -1,0 +1,4 @@
+data/walking_data*
+walk-venv
+data/all_plt_data.csv
+__pycache__*
