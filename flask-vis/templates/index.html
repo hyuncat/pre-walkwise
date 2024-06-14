@@ -20,74 +20,116 @@
         <select name="date" id="date"></select>
         <button type="submit">Show Map</button>
     </form>
+    <div id="personHeading" style="text-align:center; margin-top:20px;"></div>
     <div id="map" style="width: 80%; height: 50vh; margin: 20px auto;"></div>
 
     
     <script>
-        // document.getElementById('person').addEventListener('change', function() {
-        //     fetch('/dates/' + this.value).then(function(response) {
-        //         return response.json();
-        //     }).then(function(dates) {
-        //         var dateSelect = document.getElementById('date');
-        //         dateSelect.innerHTML = '';
-        //         dates.forEach(function(date) {
-        //             var option = new Option(date, date);
-        //             dateSelect.add(option);
-        //         });
-        //     });
-        // });
-
-        // document.getElementById('dataForm').addEventListener('submit', function(e) {
-        //     e.preventDefault();
-        //     $.post('/map', $(this).serialize(), function(mapHtml) {
-        //         $('#map').html(mapHtml);
-        //     });
-        // });
 
         let map = null; // This will hold the map object
 
-    function createMap(latLongData) {
-        if (map) { map.remove(); } // If map exists, remove it and create a new one
+        // function createMap(latLongData) {
+        //     if (map) { map.remove(); } // If map exists, remove it and create a new one
 
-        map = L.map('map').setView([latLongData.lat[0], latLongData.long[0]], 13);
+        //     map = L.map('map').setView([latLongData.lat[0], latLongData.long[0]], 13);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 18,
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
+        //     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        //         maxZoom: 18,
+        //         attribution: '© OpenStreetMap'
+        //     }).addTo(map);
 
-        // Add the original and filtered polylines
-        let originalLatLngs = latLongData.lat.map((lat, idx) => [lat, latLongData.long[idx]]);
-        let filteredLatLngs = latLongData.lat_filtered.map((lat, idx) => [lat, latLongData.long_filtered[idx]]);
-        
-        L.polyline(originalLatLngs, {color: '#3480eb', weight: 10}).addTo(map);
-        L.polyline(filteredLatLngs, {color: '#FF0000', weight: 3}).addTo(map);
-    }
+        //     // Add the original and filtered polylines
+        //     let originalLatLngs = latLongData.lat.map((lat, idx) => [lat, latLongData.long[idx]]);
+        //     let filteredLatLngs = latLongData.lat_filtered.map((lat, idx) => [lat, latLongData.long_filtered[idx]]);
+            
+        //     L.polyline(originalLatLngs, {color: '#3480eb', weight: 10}).addTo(map);
+        //     L.polyline(filteredLatLngs, {color: '#FF0000', weight: 3}).addTo(map);
+        // }
 
-    $(document).ready(function() {
-        $('#dataForm').submit(function(event) {
-            event.preventDefault();
-            $.post('/mapdata', $(this).serialize(), function(data) {
-                createMap(data); // Use the returned data to create the map
+        $(document).ready(function() {
+            // Initialize the map on document ready
+            map = L.map('map').setView([39.926117, 116.315750], 13); // Default to some coordinates, change these to your desired starting location
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 20,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+            
+            // Initialize a layer group for markers
+            var markersLayer = L.layerGroup().addTo(map);
+
+            $('#dataForm').submit(function(event) {
+                event.preventDefault();
+
+                markersLayer.clearLayers(); // Clear existing markers
+                // Get the selected person's text and update the secondary title
+                var selectedPersonText = $('#person option:selected').text();
+                var selectedDate = $('#date option:selected').text();
+                $('#personHeading').html(`<h2>Person ${selectedPersonText} on ${selectedDate}</h2>`); // Update the secondary title
+
+                $.post('/geojsondata', $(this).serialize(), function(data) {
+                    var parsedData = JSON.parse(data);
+                    var bounds = []; // Array to collect all coordinates
+                    var original_coords = [];
+                    var filtered_coords = [];
+
+                    var geoJsonLayer = L.geoJson(parsedData, {
+                        pointToLayer: function(feature, latlng) {
+                            var color = feature.properties.type === 'original' ? '#3480eb' : '#FF0000'; // Original in orange, filtered in blue
+                            return L.circleMarker(latlng, {
+                                radius: 8,
+                                fillColor: color,
+                                color: "#000",
+                                weight: 1,
+                                opacity: 1,
+                                fillOpacity: 0.4
+                            });
+                        },
+                        onEachFeature: function (feature, layer) {
+                            // Attach a tooltip to each feature
+                            var tooltipTitle =feature.properties.type === 'original' ?  'Original' : 'Filtered';
+                            layer.bindTooltip(`<strong>${tooltipTitle}</strong><br>Coordinates: ${feature.geometry.coordinates[1]}, ${feature.geometry.coordinates[0]}<br>Time: ${feature.properties.time}`, {
+                                permanent: false,  // true if you want it always displayed
+                                direction: 'auto'  // it will position the tooltip where there is space
+                            });
+                            layer.on('mouseover', function () {
+                                this.setStyle({
+                                    fillOpacity: .8
+                                });
+                            });
+                            layer.on('mouseout', function () {
+                                this.setStyle({
+                                    fillOpacity: 0.4
+                                });
+                            });
+                            layer.bindPopup(`Coordinates: ${feature.geometry.coordinates[1]}, ${feature.geometry.coordinates[0]}\nTime: ${feature.properties.time}`);
+                            bounds.push([feature.geometry.coordinates[1], feature.geometry.coordinates[0]]);
+                        }
+                    }).addTo(markersLayer);
+
+                    // If there are bounds, fit the map to these bounds
+                    if (bounds.length > 0) {
+                        map.fitBounds(bounds);
+                    }
+                });
             });
+
+            // Load initial person and date information
+            $('#person').change(function() {
+                var personId = $(this).val();
+                $.ajax({
+                    url: '/dates/' + personId,
+                    type: 'GET',
+                    success: function(response) {
+                        var dateSelect = $('#date');
+                        dateSelect.empty();
+                        response.forEach(function(date) {
+                            dateSelect.append($('<option>', {value: date, text: date}));
+                        });
+                    }
+                });
+            }).trigger('change'); // Trigger change to load dates initially
         });
-
-        // Load initial person and date information
-        $('#person').change(function() {
-            var personId = $(this).val();
-            $.ajax({
-                url: '/dates/' + personId,
-                type: 'GET',
-                success: function(response) {
-                    var dateSelect = $('#date');
-                    dateSelect.empty();
-                    response.forEach(function(date) {
-                        dateSelect.append($('<option>', {value: date, text: date}));
-                    });
-                }
-            });
-        }).trigger('change'); // Trigger change to load dates initially
-    });
     </script>
 </body>
 </html>

@@ -1,9 +1,14 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, Response, json, jsonify
+from json import JSONEncoder
+
 import pandas as pd
+import geopandas as gpd
+from shapely.geometry import Point
 import folium
 from folium.plugins import MousePosition
 from pykalman import KalmanFilter
 import numpy as np
+from datetime import date, datetime
 
 from MapVisualization import MapVisualization
 
@@ -25,7 +30,7 @@ def index():
 def get_dates(person):
     # Get unique dates for a specific person
     dates = all_plt_data[all_plt_data['person'] == person]['date'].unique()
-    dates = [str(date) for date in sorted(pd.to_datetime(dates))]
+    dates = [pd.to_datetime(date).strftime('%Y-%m-%d') for date in sorted(pd.to_datetime(dates))]
     return jsonify(dates)
 
 # @app.route('/map', methods=['POST'])
@@ -55,22 +60,46 @@ def get_dates(person):
 #     return folium_map.get_root().render()
 #     # return iframe
 
-# Server-side: Simplify the map generation logic
-@app.route('/mapdata', methods=['POST'])
-def map_data():
-    person = request.form.get('person')
+# def json_serial(obj):
+#     """JSON serializer for objects not serializable by default json code"""
+
+#     if isinstance(obj, (datetime, date)):
+#         return obj.isoformat()
+#     raise TypeError ("Type %s not serializable" % type(obj))
+
+@app.route('/geojsondata', methods=['POST'])
+def geojson_data():
+    person = int(request.form.get('person'))
     date = request.form.get('date')
-    person_data = filter_person_and_date(all_plt_data, int(person), date)
-    gps_df = kalman_filtering(person_data)
+    person_data = filter_person_and_date(all_plt_data, person, date)
+    kalman_data = kalman_filtering(person_data)
     
-    # Construct a response with just the data needed to plot the map
-    map_data = {
-        'lat': gps_df['lat'].tolist(),
-        'long': gps_df['long'].tolist(),
-        'lat_filtered': gps_df['lat_filtered'].tolist(),
-        'long_filtered': gps_df['long_filtered'].tolist()
-    }
-    return jsonify(map_data)
+    # Convert DataFrame to GeoDataFrame
+    gdf_original = gpd.GeoDataFrame(kalman_data, geometry=[Point(xy) for xy in zip(kalman_data.long, kalman_data.lat)])
+    # radius = 0.0001  # Example radius in degrees. Adjust based on your needs.
+    # gdf['geometry'] = gdf.geometry.buffer(radius)
+    
+    gdf_original.crs = {'init': 'epsg:4326'}  # Define coordinate reference system
+    gdf_original['cst_datetime'] = gdf_original['cst_datetime'].astype(str)
+    gdf_original['date'] = pd.to_datetime(gdf_original['date']).dt.date.astype(str)
+    gdf_original['time'] = gdf_original['time'].astype(str)
+
+    # Do same for filtered gdf
+    gdf_filtered = gpd.GeoDataFrame(kalman_data, geometry=[Point(xy) for xy in zip(kalman_data.long_filtered, kalman_data.lat_filtered)])
+    gdf_filtered.crs = {'init': 'epsg:4326'}  # Define coordinate reference system
+    gdf_filtered['cst_datetime'] = gdf_filtered['cst_datetime'].astype(str)
+    gdf_filtered['date'] = pd.to_datetime(gdf_filtered['date']).dt.date.astype(str)
+    gdf_filtered['time'] = gdf_filtered['time'].astype(str)
+    
+    gdf_original['type'] = 'original'
+    gdf_filtered['type'] = 'filtered'
+
+    combined_gdf = gdf_original._append(gdf_filtered)
+    
+    # Convert GeoDataFrame to GeoJSON
+    geojson = combined_gdf.to_json()
+
+    return jsonify(geojson)
 
 def filter_person_and_date(data, person, date):
     """
