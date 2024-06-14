@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 from pykalman import KalmanFilter
 
+#TODO:
+# maybe average building height as a parameter
+# rolling average of building height, address lookup for each gps point, 
+#  adding building height of nearest building to rolling average
 def filter_person_and_date(data: pd.DataFrame, person: int, date: str):
     """
     Filter all_plt_data for a specific person and date.
@@ -44,6 +48,23 @@ def time_segmentation(data: pd.DataFrame, time_cutoff: int = 60):
         print(f"Segment {i}: {len(segment_df)} rows")  # Debugging
 
     return split_dfs
+
+def kalman_with_segment(segment_df_list):
+    """
+    Accepts a list of DataFrames
+    """
+    segments = []
+    for i, df in enumerate(segment_df_list):
+        df = df.copy()  # Ensure that we are working with a copy
+        kalman_df = kalman_filtering(df)
+        kalman_df['segment'] = i  # Assign segment number
+        segments.append(kalman_df)
+        print(f"Segment {i} assigned with {len(kalman_df)} rows.")  # Debugging: Print number of rows in each segment
+        print(kalman_df.head())  # Debugging: Print the head of the DataFrame
+
+    kalman_segment = pd.concat(segments, ignore_index=True)
+    print(f"Unique segments in combined DataFrame: {kalman_segment['segment'].unique()}")  # Should show an array of unique segment numbers
+    return kalman_segment
 
 
 def kalman_filtering(data):
