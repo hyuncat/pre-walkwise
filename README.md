@@ -9,4 +9,4 @@ python app.py
 
 You can visualize the data (either full or demo) in a simple flask app to explore any given person's movement on all available dates they had walked.
 
-<img width="600" alt="Screenshot 2024-06-14 at 3 03 45 AM" src="https://github.com/hyuncat/GPS-kalman/assets/114366569/974b6b84-ea68-4823-95e3-5c165cb5070f">
+<img width="500" alt="Screenshot 2024-06-14 at 3 06 02 AM" src="https://github.com/hyuncat/GPS-kalman/assets/114366569/8aa7d173-43dd-4b44-898a-88061643d895">
