@@ -5,6 +5,7 @@ import pandas as pd
 
 class MapVisualization:
     def __init__(self):
+        # TODO: Bring out color/weight/opacity to be member variables
         pass
 
     @staticmethod

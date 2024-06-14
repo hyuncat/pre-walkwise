@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GPS Data Viewer</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+</head>
+<body>
+    <h1>GPS Data Viewer</h1>
+    <form id="dataForm">
+        <label for="person">Choose a person:</label>
+        <select name="person" id="person">
+            {% for person in persons %}
+            <option value="{{ person }}">{{ person }}</option>
+            {% endfor %}
+        </select>
+        <label for="date">Choose a date:</label>
+        <select name="date" id="date"></select>
+        <button type="submit">Show Map</button>
+    </form>
+    <div id="map" style="width: 80%; height: 50vh; margin: 20px auto;"></div>
+
+    
+    <script>
+        // document.getElementById('person').addEventListener('change', function() {
+        //     fetch('/dates/' + this.value).then(function(response) {
+        //         return response.json();
+        //     }).then(function(dates) {
+        //         var dateSelect = document.getElementById('date');
+        //         dateSelect.innerHTML = '';
+        //         dates.forEach(function(date) {
+        //             var option = new Option(date, date);
+        //             dateSelect.add(option);
+        //         });
+        //     });
+        // });
+
+        // document.getElementById('dataForm').addEventListener('submit', function(e) {
+        //     e.preventDefault();
+        //     $.post('/map', $(this).serialize(), function(mapHtml) {
+        //         $('#map').html(mapHtml);
+        //     });
+        // });
+
+        let map = null; // This will hold the map object
+
+    function createMap(latLongData) {
+        if (map) { map.remove(); } // If map exists, remove it and create a new one
+
+        map = L.map('map').setView([latLongData.lat[0], latLongData.long[0]], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Add the original and filtered polylines
+        let originalLatLngs = latLongData.lat.map((lat, idx) => [lat, latLongData.long[idx]]);
+        let filteredLatLngs = latLongData.lat_filtered.map((lat, idx) => [lat, latLongData.long_filtered[idx]]);
+        
+        L.polyline(originalLatLngs, {color: '#3480eb', weight: 10}).addTo(map);
+        L.polyline(filteredLatLngs, {color: '#FF0000', weight: 3}).addTo(map);
+    }
+
+    $(document).ready(function() {
+        $('#dataForm').submit(function(event) {
+            event.preventDefault();
+            $.post('/mapdata', $(this).serialize(), function(data) {
+                createMap(data); // Use the returned data to create the map
+            });
+        });
+
+        // Load initial person and date information
+        $('#person').change(function() {
+            var personId = $(this).val();
+            $.ajax({
+                url: '/dates/' + personId,
+                type: 'GET',
+                success: function(response) {
+                    var dateSelect = $('#date');
+                    dateSelect.empty();
+                    response.forEach(function(date) {
+                        dateSelect.append($('<option>', {value: date, text: date}));
+                    });
+                }
+            });
+        }).trigger('change'); // Trigger change to load dates initially
+    });
+    </script>
+</body>
+</html>

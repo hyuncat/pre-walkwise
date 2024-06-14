@@ -1,4 +1,6 @@
 data/walking_data*
 walk-venv
-data/all_plt_data.csv
+gps-venv
+demo/all_plt_data.csv
+flask-vis/static/all_plt_data.csv
 __pycache__*
