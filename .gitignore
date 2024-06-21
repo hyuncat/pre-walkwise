@@ -1,6 +1,6 @@
-data/walking_data*
+notebooks/data/walking_data*
 walk-venv
 gps-venv
-demo/all_plt_data.csv
-flask-vis/static/data/all_plt_data.csv
+flask-app/static/data/all_plt_data.csv
 __pycache__*
+osrm-backend*
