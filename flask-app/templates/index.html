@@ -21,9 +21,13 @@
         <button type="submit">Show Map</button>
     </form>
     <div id="personHeading" style="text-align:center; margin-top:20px;"></div>
+    <div>
+        <input type="checkbox" id="showOriginal" checked> Original GPS
+        <input type="checkbox" id="showKalman" checked> Kalman Filtered
+    </div>
     <div id="map" style="width: 80%; height: 50vh; margin: 20px auto;"></div>
     
-    <script src="{{ url_for('static', filename='js/walking-map.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/map-visualization.js') }}"></script>
 
 </body>
 </html>
