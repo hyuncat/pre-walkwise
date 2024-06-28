@@ -2,13 +2,15 @@ import folium
 from folium.plugins import HeatMap, HeatMapWithTime, MousePosition
 import pandas as pd
 import geopandas as gpd
-
+import json 
 class MapVisualization:
     def __init__(self, gps_df):
         self.gps_df = gps_df
+        self.gps_df['date'] = self.gps_df['date'].apply(lambda x: x.strftime('%Y-%m-%d') if not pd.isnull(x) else '')
         self.folium_map = folium.Map(location=[gps_df['lat'].mean(), 
                                                gps_df['long'].mean()])
-
+        gps_json = json.loads(self.gps_df.to_json())
+        self.gps_df = pd.read_json(json.dumps(gps_json), convert_dates=False)
     def view_map(self):
         MousePosition(position="topright").add_to(self.folium_map)
         self.folium_map.fit_bounds([[self.gps_df['lat'].min(), self.gps_df['long'].min()], 
@@ -41,11 +43,13 @@ class MapVisualization:
                         weight=3, 
                         tooltip="Kalman filtered GPS data").add_to(self.folium_map)
     
+    
 
     def add_geojson_circles(self, new_coords):
         """
         Compare the original GPS data (blue) to some new filtered data (red) as hoverable GoeJSON circles
         """
+        
 
         # Convert both vanilla and new pandas dataframes to geodataframes
         new_lat, new_long = new_coords
@@ -57,6 +61,9 @@ class MapVisualization:
                                    geometry=gpd.points_from_xy(self.gps_df[new_long], 
                                                                self.gps_df[new_lat]), 
                                    crs="EPSG:4326")
+        
+        # vanilla_gdf['date'] = vanilla_gdf['date'].apply(lambda x: x.strftime('%Y-%m-%d') if not pd.isnull(x) else '')
+        # new_gdf['date'] = new_gdf['date'].apply(lambda x: x.strftime('%Y-%m-%d') if not pd.isnull(x) else '')
 
         folium.GeoJson(
             vanilla_gdf,
