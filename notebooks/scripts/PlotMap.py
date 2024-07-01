@@ -15,28 +15,28 @@ class PlotMap:
         # Color dicts for original, kalman, vs. road snapped data
         self.full_polyline_colors = {
             "original": "#006EC7",
-            "kalman": "#9D0B24",
+            "kalman": "#3B30D8",
             "road_snapped": "#FF87D5"
         }
         self.segment_lineweights = {
-            "original": 14,
-            "kalman": 14,
-            "road_snapped": 14
+            "original": 15,
+            "kalman": 15,
+            "road_snapped": 15
         }
         self.segment_colors = {
             "original": "#1395FFB3",
-            "kalman": "#EB3856B3",
+            "kalman": "#5F54FFB3",
             "road_snapped": "#FF87D5B3"
         }
         self.circle_colors = {
             "original": "#1395FF",
-            "kalman": "#EB3856",
+            "kalman": "#D9D7FF",
             "road_snapped": "#f2f2f2"
         }
         self.circle_radiuses = {
-            "original": 5,
-            "kalman": 5,
-            "road_snapped": 5
+            "original": 4.5,
+            "kalman": 4.5,
+            "road_snapped": 4.5
         }
         self.tooltips = {
             "original": "<b>Original GPS data</b>",
@@ -102,10 +102,10 @@ class PlotMap:
             if coord_type == "original" or coord_type == "kalman":
                 # Convert date to datetime, then to string (just in case)
                 date = pd.to_datetime(row['cst_datetime'])
-                date_string = date.strftime('%Y-%m-%d') if 'cst_datetime' in row else ''
+                date_string = date.strftime('%Y-%m-%d %H:%M:%S') if 'cst_datetime' in row else ''
                 circle_tooltip = self.tooltips[coord_type] + f"<br>Coordinates: {row[coord_cols[0]]}, {row[coord_cols[1]]}<br>Time: {date_string}"
             elif coord_type == "road_snapped":
-                circle_tooltip = self.tooltips[coord_type] + f"<br>Snapped Coordinates: {row[coord_cols[0]]}, {row[coord_cols[1]]}<br>Batch: {row['batch_index']}<br>Matching: {row['matchings_index']}<br>Confidence: {row['confidence']}"
+                circle_tooltip = self.tooltips[coord_type] + f"<br>Coordinates: {row[coord_cols[0]]}, {row[coord_cols[1]]}<br>Batch: {row['batch_index']}<br>Matching: {row['matchings_index']}<br>Confidence: {row['confidence']}"
             
             folium.CircleMarker(
                 location=[row[coord_cols[0]], row[coord_cols[1]]],
@@ -127,7 +127,7 @@ class PlotMap:
         
         # Add LineStrings to the Map
         lineweight = self.segment_lineweights['road_snapped']
-        for _, row in snap_legdf.iterrows():
+        for leg_index, row in snap_legdf.iterrows():
             # Extracting the coordinates for the LineString and reversing them to (lat, lon)
             line_coords = [(y, x) for x, y in row.geometry.coords]
 
@@ -138,7 +138,7 @@ class PlotMap:
             lighter_color_hex = hsl_color.hex_l
             
             # Create tooltip and popup content
-            tooltip = self.tooltips['road_snapped'] + f"<br>Batch: {row['batch_index']}<br>Confidence: {row['confidence']}<br>Distance: {row['distance']}<br>Duration: {row['duration']}"
+            tooltip = self.tooltips['road_snapped'] + f"<br>Batch: {row['batch_index']}<br>Leg: {leg_index}<br>Confidence: {row['confidence']}<br>Distance: {row['distance']}<br>Duration: {row['duration']}"
             
             # Create a PolyLine with the tooltip and popup
             folium.PolyLine(
