@@ -15,6 +15,12 @@ def kalman_filter(gps_data: pd.DataFrame):
     @return: 
         - The gps_data with 2 additional columns: 'lat_filtered' and 'long_filtered'
     """
+
+    if len(gps_data) < 2:
+        print("note: df has <2 rows, skipping kalman filter")
+        gps_data['kalman_lat'] = gps_data['lat']
+        gps_data['kalman_long'] = gps_data['long']
+        return gps_data
     
     gps_data = gps_data.copy()
 
@@ -56,7 +62,7 @@ def kalman_filter(gps_data: pd.DataFrame):
     (smoothed_state_means2, smoothed_state_covariances2) = kf2.smooth(measurements)
 
     # Add the filtered latitude and longitude to the DataFrame
-    gps_data.loc[:, 'lat_filtered'] = smoothed_state_means2[:, 0]
-    gps_data.loc[:, 'long_filtered'] = smoothed_state_means2[:, 1]
+    gps_data.loc[:, 'kalman_lat'] = smoothed_state_means2[:, 0]
+    gps_data.loc[:, 'kalman_long'] = smoothed_state_means2[:, 1]
 
     return gps_data

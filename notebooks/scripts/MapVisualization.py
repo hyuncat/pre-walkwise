@@ -11,6 +11,7 @@ class MapVisualization:
                                                gps_df['long'].mean()])
         gps_json = json.loads(self.gps_df.to_json())
         self.gps_df = pd.read_json(json.dumps(gps_json), convert_dates=False)
+    
     def view_map(self):
         MousePosition(position="topright").add_to(self.folium_map)
         self.folium_map.fit_bounds([[self.gps_df['lat'].min(), self.gps_df['long'].min()], 

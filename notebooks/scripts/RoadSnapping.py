@@ -30,15 +30,15 @@ class RoadSnap:
                         'duration': row['duration'],
                         'weight_name': row['weight_name'],
                         'weight': row['weight'],
-                        'snapped_lat': coord[1],
-                        'snapped_long': coord[0]
+                        'roadsnap_lat': coord[1],
+                        'roadsnap_long': coord[0]
                     }
                     batch_rows.append(new_row)
             all_batches_rows.extend(batch_rows)
         # Convert list of dictionaries to a DataFrame
         flatsnap_df = pd.DataFrame(all_batches_rows)
         flatsnap_gdf = gpd.GeoDataFrame(flatsnap_df, 
-                               geometry=gpd.points_from_xy(flatsnap_df.snapped_long, flatsnap_df.snapped_lat),
+                               geometry=gpd.points_from_xy(flatsnap_df.roadsnap_lat, flatsnap_df.roadsnap_lat),
                                crs="EPSG:4326")
         return flatsnap_gdf 
 
@@ -78,7 +78,7 @@ class RoadSnap:
         return all_traces_df
 
 
-    def format_for_osrm(gps_df: pd.DataFrame, format_cols=['lat', 'long'], batch_size=1000):
+    def format_for_osrm(gps_df: pd.DataFrame, format_cols=['lat', 'long'], batch_size=1000, radius=50):
         """
         Convert dataframe of gps coordinates and times to send to OSRM match API in batches
 
@@ -89,6 +89,7 @@ class RoadSnap:
             Yields two batches (lists) of strings:
             - coords: list[str, ...], each string of semicolon-separated coordinates
             - timestamps: list[str, ...] of semicolon-separated timestamps
+            - radiuses: list[str, ...] of semicolon-separated radiuses
         """
         # Convert datetime to Unix timestamp (seconds since epoch)
         gps_df['unix_time'] = pd.to_datetime(gps_df['cst_datetime']).astype('int64') // 10**9
@@ -97,6 +98,7 @@ class RoadSnap:
         gps_df = gps_df.sort_values(by='unix_time')
         
         # Calculate total number of batches
+        #TODO: Use itertools batch
         total_batches = (len(gps_df) + batch_size - 1) // batch_size
         
         lat_col, long_col = format_cols
@@ -104,10 +106,11 @@ class RoadSnap:
             batch_df = gps_df.iloc[i*batch_size:(i+1)*batch_size]
             coords = ';'.join(f"{lon},{lat}" for lon, lat in zip(batch_df[long_col], batch_df[lat_col]))
             timestamps = ';'.join(batch_df['unix_time'].astype(str))
-            yield coords, timestamps
+            radiuses = ';'.join(str(radius) for _ in range(len(batch_df)))
+            yield coords, timestamps, radiuses
 
     @staticmethod 
-    def snap_roads(gps_df: pd.DataFrame, format_cols=['lat', 'long'], batch_size=1000):
+    def snap_roads(gps_df: pd.DataFrame, format_cols=['lat', 'long'], batch_size=1000, radius=50):
         """
         Send requests to the OSRM match API to snap GPS coordinates to the road network in batches
         @param:
@@ -116,8 +119,8 @@ class RoadSnap:
             - List of JSON responses from the OSRM match API
         """
         responses = []
-        for coords, timestamps in RoadSnap.format_for_osrm(gps_df, format_cols=format_cols, batch_size=batch_size):
-            url = f"http://127.0.0.1:9000/match/v1/foot/{coords}?steps=true&geometries=geojson&annotations=true&overview=full&timestamps={timestamps}"
+        for coords, timestamps, radiuses in RoadSnap.format_for_osrm(gps_df, format_cols=format_cols, batch_size=batch_size, radius=radius):
+            url = f"http://127.0.0.1:9000/match/v1/foot/{coords}?steps=true&geometries=geojson&annotations=true&overview=full&timestamps={timestamps}&radiuses={radiuses}"
             response = requests.get(url)
             if response.status_code == 200:
                 responses.append(response.json())
