@@ -4,3 +4,5 @@ gps-venv
 flask-app/static/data/all_plt_data.csv
 __pycache__*
 osrm-backend*
+valhalla*
+*caspar_data*

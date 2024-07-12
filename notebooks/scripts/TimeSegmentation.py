@@ -44,7 +44,7 @@ class Segment:
             one_segment_df = gps_df.iloc[split_indices[i]:split_indices[i+1]].copy()
             one_segment_df.loc[:, 'segment'] = i  # Assign segment number
             gps_df_segments.append(one_segment_df)
-            print(f"Segment {i}: {len(one_segment_df)} rows")  # Debugging
+            # print(f"Segment {i}: {len(one_segment_df)} rows")  # Debugging
         
         segment_df = pd.concat(gps_df_segments, ignore_index=True)
         # Reorder columns to make 'segment' the first column
