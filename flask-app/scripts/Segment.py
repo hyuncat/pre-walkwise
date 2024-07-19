@@ -6,7 +6,7 @@ class Segment:
         pass
 
     @staticmethod
-    def segment_df(gps_df: pd.DataFrame, time_cutoff: int = 60) -> pd.DataFrame:
+    def segment_df(gps_df: pd.DataFrame, time_cutoff: int=60) -> pd.DataFrame:
         """
         Splits a dataframe of time-ordered GPS traces into a list of separate dataframes 
         based on the time difference between consecutive rows.
@@ -68,14 +68,14 @@ class Segment:
     #     return all_segments_df
 
     @staticmethod
-    def kalman_filter_segments(segment_df):
+    def kalman_filter_segments(segment_df, n_iter=5):
         """
         Kalman filters each unique segment in segment_df
         """
         kalman_segments = []
         for i, df in segment_df.groupby('segment'):
             df = df.copy()  # Ensure that we are working with a copy
-            kalman_segment = kalman_filter(df)
+            kalman_segment = kalman_filter(df, n_iter=n_iter)
             kalman_segments.append(kalman_segment)
         
         ksegment_df = pd.concat(kalman_segments, ignore_index=True)

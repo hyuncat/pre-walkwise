@@ -7,7 +7,7 @@ from pykalman import KalmanFilter
 # rolling average of building height, address lookup for each gps point, 
 # adding building height of nearest building to rolling average
 
-def kalman_filter(gps_data: pd.DataFrame):
+def kalman_filter(gps_data: pd.DataFrame, n_iter=5):
     """ 
     Apply Kalman Filter to 'lat' and 'long' columns of the input df
     @param: 
@@ -40,7 +40,7 @@ def kalman_filter(gps_data: pd.DataFrame):
     measurements = np.asarray(gps_data[['lat', 'long']])
 
     
-    kf1 = kf1.em(measurements) # Use expectation-maximization to estimate the initial parameters
+    kf1 = kf1.em(measurements, n_iter=n_iter) # Use expectation-maximization to estimate the initial parameters
     (smoothed_state_means, smoothed_state_covariances) = kf1.smooth(measurements) # Apply Kalman smoothing
 
     kf2 = KalmanFilter(n_dim_obs=2, n_dim_state=2,

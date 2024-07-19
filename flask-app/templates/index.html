@@ -27,13 +27,19 @@
             <h2 class="font-bold text-lg mb-4">Preprocess</h2>
             <form id="preprocessForm">
                 <div class="bg-white shadow-md rounded-lg p-4 mb-10">
-                    <div class="flex flex-col space-y-2">
-                        <div class="flex items-center">
+                    <div class="flex flex-col space-y-10">
+                        <div class="flex items-center mb-6">
                             <input type="checkbox" id="kalmanFilter" name="kalmanFilter" class="mr-2">
                             <label for="kalmanFilter" class="flex-grow">Kalman Filter</label>
                         </div>
-                        <label for="timeSegment" class="block">Time segment (s)</label>
-                        <input type="text" id="timeSegment" name="timeSegment" disabled class="border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" placeholder="">
+                        <div class="flex flex-col space-y-2">
+                            <label for="n_iter" class="block"># EM iterations</label>
+                            <input type="text" id="n_iter" name="n_iter" disabled class="border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" placeholder="5">    
+                        </div>
+                        <div class="flex flex-col space-y-2">
+                            <label for="timeSegment" class="block">Time segment (s)</label>
+                            <input type="text" id="timeSegment" name="timeSegment" disabled class="border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" placeholder="60">
+                        </div>
                     </div>
                 </div>
                 <div class="bg-white shadow-md rounded-lg p-4 mb-10">
@@ -47,16 +53,16 @@
                             <input type="text" id="searchRadius" name="searchRadius" disabled class="border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" placeholder="50">
                         </div>
                         <div class="flex flex-col space-y-2">
-                            <label for="gps_accuracy" class="block">GPS accuracy (m)</label>
-                            <input type="text" id="gps_accuracy" name="gps_accuracy" disabled class="border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" placeholder="5">
+                            <label for="gpsAccuracy" class="block">GPS accuracy (m)</label>
+                            <input type="text" id="gpsAccuracy" name="gpsAccuracy" disabled class="border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" placeholder="5">
                         </div>
                         <div class="flex flex-col space-y-2">
-                            <label for="breakage_distance" class="block">Breakage distance (m)</label> <!-- Corrected label text -->
-                            <input type="text" id="breakage_distance" name="breakage_distance" disabled class="border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" placeholder="2000">
+                            <label for="breakageDistance" class="block">Breakage distance (m)</label> <!-- Corrected label text -->
+                            <input type="text" id="breakageDistance" name="breakageDistance" disabled class="border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" placeholder="2000">
                         </div>
                         <div class="flex flex-col space-y-2">
-                            <label for="interpolation_distance" class="block">Interpolation distance (m)</label>
-                            <input type="text" id="interpolation_distance" name="interpolation_distance" disabled class="border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" placeholder="10">
+                            <label for="interpolationDistance" class="block">Interpolation distance (m)</label>
+                            <input type="text" id="interpolationDistance" name="interpolationDistance" disabled class="border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" placeholder="10">
                         </div>
                     </div>
                 </div>
@@ -92,14 +98,15 @@
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('kalmanFilter').addEventListener('change', function() {
+                document.getElementById('n_iter').disabled = !this.checked;
                 document.getElementById('timeSegment').disabled = !this.checked;
             });
 
             document.getElementById('mapMatch').addEventListener('change', function() {
                 document.getElementById('searchRadius').disabled = !this.checked;
-                document.getElementById('gps_accuracy').disabled = !this.checked;
-                document.getElementById('breakage_distance').disabled = !this.checked;
-                document.getElementById('interpolation_distance').disabled = !this.checked;
+                document.getElementById('gpsAccuracy').disabled = !this.checked;
+                document.getElementById('breakageDistance').disabled = !this.checked;
+                document.getElementById('interpolationDistance').disabled = !this.checked;
             });
         });
     </script>

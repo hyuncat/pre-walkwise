@@ -86,11 +86,12 @@ def preprocess():
     date = request.form.get('date')
     to_kalman_filter = request.form.get('kalmanFilter') == "true"
     map_match = request.form.get('mapMatch') == "true"
+    n_iter = request.form.get('n_iter')
     time_segment = request.form.get('timeSegment')
     search_radius = request.form.get('searchRadius')
-    gps_accuracy = request.form.get('gps_accuracy')
-    breakage_distance = request.form.get('breakage_distance')
-    interpolation_distance = request.form.get('interpolation_distance')
+    gps_accuracy = request.form.get('gpsAccuracy')
+    breakage_distance = request.form.get('breakageDistance')
+    interpolation_distance = request.form.get('interpolationDistance')
 
     print(f"Person: {person}, Date: {date}, Kalman: {to_kalman_filter}, MapMatch: {map_match}, TimeSegment: {time_segment}, SearchRadius: {search_radius}")
 
@@ -103,12 +104,15 @@ def preprocess():
     colnames_to_match = ['lat', 'long', 'cst_datetime']
 
     if to_kalman_filter:
+        if n_iter == "" or n_iter is None:
+            n_iter = 5
+        n_iter = int(n_iter)
         if time_segment != "":
             segment_df = Segment.segment_df(original_df, time_cutoff=int(time_segment))
-            kalman_df = Segment.kalman_filter_segments(segment_df)
+            kalman_df = Segment.kalman_filter_segments(segment_df, n_iter)
            
         else:
-            kalman_df = kalman_filter(original_df)
+            kalman_df = kalman_filter(original_df, n_iter)
 
         kalman_gdf = create_geodataframe(kalman_df, 'kalman_lat', 'kalman_long')
         kalman_gdf['type'] = 'kalman'

@@ -190,9 +190,13 @@ $(document).ready(function() {
             person: $('#person').val(),
             date: $('#date').val(),
             kalmanFilter: $('#kalmanFilter').is(':checked'),
+            n_iter: $('#n_iter').val(),
             timeSegment: $('#timeSegment').val(),
             mapMatch: $('#mapMatch').is(':checked'),
-            searchRadius: $('#searchRadius').val()
+            searchRadius: $('#searchRadius').val(),
+            gpsAccuracy: $('#gpsAccuracy').val(),
+            breakageDistance: $('#breakageDistance').val(),
+            interpolationDistance: $('#interpolationDistance').val()
         };
         console.log('Form data:', formData);
     
