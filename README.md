@@ -1,19 +1,23 @@
-# GPS-kalman
-Scripts and web app to implement and visualize Kalman filtering for GPS time-series data.
+# Pre-Walkwise 🚶‍♂️
+Scripts and web app to implement and visualize Kalman filtering and Map-Matching algorithms for GPS time-series data. For use in preprocessing the training data for the Walkwise model, for predicting pedestrian intent at intersections.
 
 ## Installation notes
 
-All non-road-snapping features can be run just by installing package dependencies:
+All non-map-matching features can be run just by installing package dependencies:
 ```shell
 pip install -r requirements.txt
 ```
-For setting up OSRM backend service, download the Beijing .pbf file and follow the documentation on their GitHub for setting up the Docker daemon. When you run the container, use the following:
 
+To setup the Docker image for Valhalla Map Matching, please download the beijing-latest.osm.pbf file and run the server on the port 8002.
+
+For instance, I created a 'valhalla' directory in the project's root directory and ran:
 ```shell
-docker run -t -i -p 9000:5000 -v "${PWD}/osrm-backend/beijing:/data" osrm/osrm-backend osrm-routed --algorithm mld --max-matching-size 1000 /data/beijing-latest.osrm
+docker run -dt --name valhalla_gis-ops -p 8002:8002 \
+    -v $PWD/valhalla:/custom_files \
+    -e serve_tiles=True \
+    ghcr.io/gis-ops/docker-valhalla/valhalla:latest
 ```
-
-This runs it with batch size 1000 and also on port 9000, which is the url which my functions send requests to.
+The online documentation for setting up Valhalla routing service is comprehensive, but contact me if you need help configuring it for running this project. The current scripts assume the request URL is going to http://localhost:8002/trace_route, so if you want to run it on a different port just change the port number in the `MapMatch.py` scripts.
 
 ## Notebook scripts
 
@@ -59,17 +63,19 @@ To avoid this we filter GPS data separately based on person, date, and by only f
 
 <img width="557" src="https://github.com/hyuncat/GPS-kalman/assets/114366569/f96eb95d-d3d2-46d3-a57b-58f3b4f6579d">
 
-### 3. Road snapping
+### 3. Map matching
 
-Currently hosting OSRM's backend match service to try and 'snap' the GPS data to the street grid. Different people have yielded varying levels of success, but for now we are running with a batch size of 1000 and playing around with radius sizes around 20, and finding okay results. Still needs a lot of work before we can use it in the model, and need to find a way to map the original time data back onto the snapped coordinates.
+Currently hosting Valhalla's Meili Match Service to 'snap' our GPS traces to the street grid, with pretty good results! Parameters of interest include:
+- Search radius - Maximum radius to search for road around the supplied coordinate
+- GPS accuracy - What standard of GPS accuracy do we assume?
+- Breakage distance - Between twopoints what's the maximum distance before we match separately(?)
+- Interpolation distance - Max distance, beyond which trace points are merged together
 
-<img width="557" alt="Screenshot 2024-06-30 at 10 14 36 PM" src="https://github.com/hyuncat/GPS-kalman/assets/114366569/89c599b6-70d1-4e44-ba59-9ada35d3c199">
+<img width="557" alt="map_matching" src="https://github.com/user-attachments/assets/08968d72-a04a-4fbc-8ee0-103d993f9bab">
 
 ### 4. (A fourth type)
 
 There is also a fourth notebook type, `map_visualization`, which tests the various workflows I attempted while trying to create an intuitive way to create a map visualization class. The current best map visualization class for now is in `notebooks/scripts/PlotMap.py`, and its sample usage can be found in the last few cells of `map_visualization.ipynb` and `road_snap2.ipynb`.
-
-
 
 ## Explore the data in the flask app
 
@@ -82,6 +88,6 @@ python app.py
 
 The app looks something like this:
 
-<img width="557" alt="Screenshot 2024-06-30 at 10 44 19 PM" src="https://github.com/hyuncat/GPS-kalman/assets/114366569/266970cc-13c6-477b-adcf-230af8cb6dca">
+<img width="557" alt="prewalk_flask" src="https://github.com/user-attachments/assets/d382c725-6dd0-45cb-8b14-05223faeb18b">
 
-For now it only shows the difference between original GPS and kalman filtered GPS data, but can (and should probably) be extended to incorporate time segmentation + road snapping to facilitate easier tuning of radius / batch size / etc.
+Please note that if you want to view the results of map matching, you will need to host the Meili match service on your own machine. 
