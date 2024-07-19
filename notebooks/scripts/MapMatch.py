@@ -12,7 +12,7 @@ class MapMatch:
         pass
 
     @staticmethod
-    def prepare_meili(person_df, colnames=['lat', 'long', 'cst_datetime']):
+    def prepare_meili(person_df, colnames=['lat', 'long', 'cst_datetime'], search_radius=150):
         """
         Prepare a person_df for map matching with Meili
         @param:
@@ -32,7 +32,7 @@ class MapMatch:
 
 
     @classmethod
-    def meili_match(cls, person_df, colnames=['lat', 'long', 'cst_datetime']):
+    def meili_match(cls, person_df, colnames=['lat', 'long', 'cst_datetime'], search_radius=150):
         """
         Match a person's data to the road network using Meili
         @param:
@@ -41,7 +41,7 @@ class MapMatch:
         @return:
             - matched_df: a pandas DataFrame containing the matched data
         """
-        request_body = MapMatch.prepare_meili(person_df, colnames)
+        request_body = MapMatch.prepare_meili(person_df, colnames, search_radius)
         response = requests.post(cls.URL, data=request_body, headers=cls.HEADERS)
         if response.status_code == 200:
             return response.json()
@@ -130,7 +130,8 @@ class MapMatch:
                     'trace_distance_from_start': None,
                     'trace_name': None,
                     'trace_waypoint_index': None,
-                    'cst_datetime': person_df.iloc[trace_index]['cst_datetime']
+                    'cst_datetime': person_df.iloc[trace_index]['cst_datetime'],
+                    'date': person_df.iloc[trace_index]['date']
                 }
             else:
                 trace_row = {
@@ -142,7 +143,8 @@ class MapMatch:
                     'trace_distance_from_start': tracepoint.get('distance_from_start', 0),
                     'trace_name': tracepoint.get('name', ''),
                     'waypoint_index': tracepoint.get('waypoint_index', None),
-                    'cst_datetime': person_df.iloc[trace_index]['cst_datetime']
+                    'cst_datetime': person_df.iloc[trace_index]['cst_datetime'],
+                    'date': person_df.iloc[trace_index]['date']
                 }
             trace_rows.append(trace_row)
 

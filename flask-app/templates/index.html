@@ -2,32 +2,89 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>GPS Data Viewer</title>
+    <title>Pre-Walkwise</title>
+    <link href="https://cdn.tailwindcss.com" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinycolor/1.4.2/tinycolor.min.js"></script>
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/gokertanrisever/leaflet-ruler@master/src/leaflet-ruler.css"
+        integrity="sha384-P9DABSdtEY/XDbEInD3q+PlL+BjqPCXGcF8EkhtKSfSTr/dS5PBKa9+/PMkW2xsY"
+        crossorigin="anonymous"
+    />
+    <script
+        src="https://cdn.jsdelivr.net/gh/gokertanrisever/leaflet-ruler@master/src/leaflet-ruler.js"
+        integrity="sha384-8SqKZR7V8uOetpjjbcNJHvwuHpb074WS0UXjCLhzfJUqYn3B/uWx1WVv5mwRp1mV"
+        crossorigin="anonymous"
+    ></script>
 </head>
 <body>
-    <h1>GPS Data Viewer</h1>
-    <form id="dataForm">
-        <label for="person">Choose a person:</label>
-        <select name="person" id="person">
-            {% for person in persons %}
-            <option value="{{ person }}">{{ person }}</option>
-            {% endfor %}
-        </select>
-        <label for="date">Choose a date:</label>
-        <select name="date" id="date"></select>
-        <button type="submit">Show Map</button>
-    </form>
-    <div id="personHeading" style="text-align:center; margin-top:20px;"></div>
-    <div>
-        <input type="checkbox" id="showOriginal" checked> Original GPS
-        <input type="checkbox" id="showKalman" checked> Kalman Filtered
+    <div class="container flex">
+        <div class="sidebar bg-gray-100 p-4">
+            <h2 class="font-bold text-lg mb-4">Preprocess</h2>
+            <form id="preprocessForm">
+                <div class="bg-white shadow-md rounded-lg p-4 mb-4">
+                    <div class="flex flex-col space-y-2">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="kalmanFilter" name="kalmanFilter" class="mr-2">
+                            <label for="kalmanFilter" class="flex-grow">Kalman Filter</label>
+                        </div>
+                        <label for="timeSegment" class="block">Time segment (s)</label>
+                        <input type="text" id="timeSegment" name="timeSegment" disabled class="border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" placeholder="">
+                    </div>
+                </div>
+                <div class="bg-white shadow-md rounded-lg p-4 mb-4">
+                    <div class="flex flex-col space-y-2">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="mapMatch" name="mapMatch" class="mr-2">
+                            <label for="mapMatch" class="flex-grow">Map Match</label>
+                        </div>
+                        <label for="searchRadius" class="block">Search radius (m)</label>
+                        <input type="text" id="searchRadius" name="searchRadius" disabled class="border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm" placeholder="">
+                    </div>
+                </div>
+                <div class="text-center mt-4">
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Preprocess</button>
+                </div>
+            </form>
+        </div>
+        <div class="main-content flex-grow p-4">
+            <h1>Pre-Walkwise 🚶‍♂️</h1>
+            <p>
+                Interactively run the preprocessing routines on the GPS data for a specific 
+                person/date and view the results on the map. Data from v.1.3 of the GeoLife 
+                Trajectories dataset.
+            </p>
+            <form id="personSelectForm">
+                <label for="person">Choose a person:</label>
+                <select name="person" id="person">
+                    {% for person in persons %}
+                    <option value="{{ person }}">{{ person }}</option>
+                    {% endfor %}
+                </select>
+                <label for="date">Choose a date:</label>
+                <select name="date" id="date"></select>
+                <button type="submit">Show Map</button>
+            </form>
+            <div id="personHeading" style="text-align:center; margin-top:20px;"></div>
+            <div id="map" style="width: 100%; height: 50vh; margin-top: 20px;"></div>
+        </div>
     </div>
-    <div id="map" style="width: 80%; height: 50vh; margin: 20px auto;"></div>
-    
-    <script src="{{ url_for('static', filename='js/map-visualization.js') }}"></script>
 
+    <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            document.getElementById('kalmanFilter').addEventListener('change', function() {
+                document.getElementById('timeSegment').disabled = !this.checked;
+            });
+
+            document.getElementById('mapMatch').addEventListener('change', function() {
+                document.getElementById('searchRadius').disabled = !this.checked;
+            });
+        });
+    </script>
 </body>
 </html>

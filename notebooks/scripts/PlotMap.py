@@ -68,7 +68,7 @@ class PlotMap:
             "matched": ['matched_lat', 'matched_long']
         }
 
-    def show(self):
+    def show(self) -> folium.Map:
         """Display the map"""
         MousePosition(position="topright").add_to(self.folium_map)
         self.folium_map.fit_bounds([[self.person_df['lat'].min(), self.person_df['long'].min()], 
@@ -76,8 +76,11 @@ class PlotMap:
         folium.LayerControl(position='topright', collapsed=False).add_to(self.folium_map)
         return self.folium_map
     
-    def full_polyline(self, gps_df, coord_type="original"):
-        """Add a thin line connecting all coordinates with the given column names"""
+    def full_polyline(self, gps_df, coord_type="original") -> None:
+        """
+        Add a thin line connecting all coordinates with the given column names
+        to the PlotMap instance
+        """
         coord_cols = self.coord_cols[coord_type]
         full_polyline_color = self.full_polyline_colors[coord_type]
         full_polyline_tooltip = self.tooltips[coord_type]

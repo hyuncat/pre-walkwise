@@ -10,9 +10,10 @@ from pykalman import KalmanFilter
 import numpy as np
 from datetime import date, datetime
 
-from utils import filter_person_and_date, create_geodataframe
-from KalmanFilter import kalman_filter
-from TimeSegmentation import time_segmentation, kalman_with_segment
+from scripts.utils import filter_person_and_date, create_geodataframe
+from scripts.KalmanFilter import kalman_filter
+from scripts.Segment import Segment
+from scripts.MapMatch import MapMatch
 
 app = Flask(__name__)
 
@@ -23,10 +24,10 @@ all_plt_data = pd.read_csv('static/data/all_plt_data.csv')
 
 @app.route('/')
 def index():
-    # Get unique persons for the dropdown
-    persons = all_plt_data['person'].unique().tolist()
-    persons.sort()
-    return render_template('index.html', persons=persons)
+    """Only info needed to render index is all unique people for dropdown"""
+    all_unique_people = all_plt_data['person'].unique().tolist()
+    all_unique_people.sort()
+    return render_template('index.html', persons=all_unique_people)
 
 
 @app.route('/dates/<int:person>')
@@ -37,8 +38,8 @@ def get_dates(person):
     return jsonify(dates)
 
 
-@app.route('/geojsondata', methods=['POST'])
-def geojson_data():
+@app.route('/init_map', methods=['POST'])
+def init_map():
     """
     Process and return GeoJSON data for the selected person and date.
 
@@ -54,11 +55,12 @@ def geojson_data():
 
     # Filter data for the selected person and date
     person_data = filter_person_and_date(all_plt_data, person, date)
-    kalman_data = kalman_filter(person_data)
+    # kalman_data = kalman_filter(person_data)
     
     # Convert pandas dataframes to GeoDataFrames
-    gdf_original = create_geodataframe(kalman_data, 'lat', 'long')
-    gdf_filtered = create_geodataframe(kalman_data, 'lat_filtered', 'long_filtered')
+    gdf_original = create_geodataframe(person_data, 'lat', 'long')
+    # gdf_original = create_geodataframe(kalman_data, 'lat', 'long')
+    # gdf_filtered = create_geodataframe(kalman_data, 'kalman_lat', 'kalman_long')
 
     # Get list of time segmented dataframes for original data
     # person_segments = time_segmentation(person_data)
@@ -66,14 +68,70 @@ def geojson_data():
     
     # Add labels (to distinguish when plotting on map)
     gdf_original['type'] = 'original'
-    gdf_filtered['type'] = 'filtered'
+    # gdf_filtered['type'] = 'kalman'
 
     # Combine the two GeoDataFrames
-    combined_gdf = gdf_original._append(gdf_filtered)
+    # combined_gdf = gdf_original._append(gdf_filtered)
     
     # Convert GeoDataFrame to GeoJSON
-    geojson = combined_gdf.to_json()
+    # geojson = combined_gdf.to_json()
+    geojson = gdf_original.to_json()
     return jsonify(geojson)
+
+
+@app.route('/preprocess', methods=['POST'])
+def preprocess():
+    print('Preprocessing...')
+    person = int(request.form.get('person'))
+    date = request.form.get('date')
+    to_kalman_filter = request.form.get('kalmanFilter') == "true"
+    map_match = request.form.get('mapMatch') == "true"
+    time_segment = request.form.get('timeSegment')
+    search_radius = request.form.get('searchRadius')
+
+    print(f"Person: {person}, Date: {date}, Kalman: {to_kalman_filter}, MapMatch: {map_match}, TimeSegment: {time_segment}, SearchRadius: {search_radius}")
+
+    original_df = filter_person_and_date(all_plt_data, person, date)
+    original_gdf = create_geodataframe(original_df, 'lat', 'long')
+    original_gdf['type'] = 'original'
+
+    full_geojson = json.loads(original_gdf.to_json())
+    df_to_match = original_df
+
+    if to_kalman_filter:
+        if time_segment != "":
+            segment_df = Segment.segment_df(original_df, time_cutoff=int(time_segment))
+            kalman_df = Segment.kalman_filter_segments(segment_df)
+           
+        else:
+            kalman_df = kalman_filter(original_df)
+
+        kalman_gdf = create_geodataframe(kalman_df, 'kalman_lat', 'kalman_long')
+        kalman_gdf['type'] = 'kalman'
+
+        print(f"Kalman and segment{time_segment}")
+        
+        # Append ksegment_gdf to full_geojson
+        kalman_geojson = json.loads(kalman_gdf.to_json())
+        full_geojson['features'].extend(kalman_geojson['features'])
+        
+        df_to_match = kalman_df
+
+    if map_match and search_radius:
+        meili_json = MapMatch.meili_match(df_to_match, search_radius=int(search_radius))
+        trace_df = MapMatch.make_tracedf(meili_json, original_df)
+        # print colnames of trace_df
+        print(trace_df.columns)
+        matched_gdf = create_geodataframe(trace_df, 'matched_lat', 'matched_long')
+        matched_gdf['type'] = 'matched'
+
+        print(f"Map Matched with radius {search_radius}")
+
+        # Append matched_gdf to full_geojson
+        matched_geojson = json.loads(matched_gdf.to_json())
+        full_geojson['features'].extend(matched_geojson['features'])
+    
+    return jsonify(full_geojson)
 
 
 if __name__ == '__main__':
