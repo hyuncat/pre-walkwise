@@ -1,5 +1,6 @@
 import pandas as pd
 import requests
+import json
 
 class MapMatch:
     HEADERS = {'Content-Type': 'application/json'}
@@ -12,27 +13,45 @@ class MapMatch:
         pass
 
     @staticmethod
-    def prepare_meili(person_df, colnames=['lat', 'long', 'cst_datetime'], search_radius=150):
+    def prepare_meili(person_df, colnames=['lat', 'long', 'cst_datetime'], match_options={}):
         """
         Prepare a person_df for map matching with Meili
         @param:
             - person_df: a pandas DataFrame containing the person's data
             - colnames: a list of the column names for latitude, longitude, and time
+             - match_options: a dictionary of user-specified options to override defaults
         @return:
             - request_body: a JSON string to be sent to the Meili API
         """
+
+        # Default match options
+        meili_options = {
+            'search_radius': 50,
+            'gps_accuracy': 5,
+            'breakage_distance': 2000,
+            'interpolation_distance': 10,
+            'shape_match': 'map_snap',
+            'costing': 'auto',
+            'format': 'osrm'
+        }
+        meili_options.update(match_options)  # Merge user-specified options into the default options
+
         lat_col, long_col, time_col = colnames
         person_df['time'] = pd.to_datetime(person_df[time_col]).dt.strftime('%Y-%m-%dT%H:%M:%SZ')
         prepared_df = person_df[[long_col, lat_col, 'time']].copy()
         prepared_df.columns = ['lon', 'lat', 'time']
         
         meili_coordinates = prepared_df.to_json(orient='records')
-        request_body = f'{{"shape": {meili_coordinates}, "search_radius": 150, "shape_match":"map_snap", "costing":"auto", "format":"osrm"}}'
+        request_body_dict = {
+            "shape": json.loads(meili_coordinates),  # Convert string to list of dicts
+            **meili_options  # Merge match_options into the request body
+        }
+        request_body = json.dumps(request_body_dict)  # Convert the entire request body to a JSON string
         return request_body
 
 
     @classmethod
-    def meili_match(cls, person_df, colnames=['lat', 'long', 'cst_datetime'], search_radius=150):
+    def meili_match(cls, person_df, colnames=['lat', 'long', 'cst_datetime'], match_options={}):
         """
         Match a person's data to the road network using Meili
         @param:
@@ -41,7 +60,7 @@ class MapMatch:
         @return:
             - matched_df: a pandas DataFrame containing the matched data
         """
-        request_body = MapMatch.prepare_meili(person_df, colnames, search_radius)
+        request_body = MapMatch.prepare_meili(person_df, colnames, match_options)
         response = requests.post(cls.URL, data=request_body, headers=cls.HEADERS)
         if response.status_code == 200:
             return response.json()

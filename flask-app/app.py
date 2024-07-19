@@ -88,6 +88,9 @@ def preprocess():
     map_match = request.form.get('mapMatch') == "true"
     time_segment = request.form.get('timeSegment')
     search_radius = request.form.get('searchRadius')
+    gps_accuracy = request.form.get('gps_accuracy')
+    breakage_distance = request.form.get('breakage_distance')
+    interpolation_distance = request.form.get('interpolation_distance')
 
     print(f"Person: {person}, Date: {date}, Kalman: {to_kalman_filter}, MapMatch: {map_match}, TimeSegment: {time_segment}, SearchRadius: {search_radius}")
 
@@ -97,6 +100,7 @@ def preprocess():
 
     full_geojson = json.loads(original_gdf.to_json())
     df_to_match = original_df
+    colnames_to_match = ['lat', 'long', 'cst_datetime']
 
     if to_kalman_filter:
         if time_segment != "":
@@ -116,16 +120,24 @@ def preprocess():
         full_geojson['features'].extend(kalman_geojson['features'])
         
         df_to_match = kalman_df
+        colnames_to_match = ['kalman_lat', 'kalman_long', 'cst_datetime']
 
-    if map_match and search_radius:
-        meili_json = MapMatch.meili_match(df_to_match, search_radius=int(search_radius))
+    if map_match:
+
+        match_options = {
+            'search_radius': search_radius,
+            'gps_accuracy': gps_accuracy,
+            'breakage_distance': breakage_distance,
+            'interpolation_distance': interpolation_distance
+        }
+        meili_json = MapMatch.meili_match(df_to_match, colnames_to_match, match_options)
         trace_df = MapMatch.make_tracedf(meili_json, original_df)
         # print colnames of trace_df
         print(trace_df.columns)
         matched_gdf = create_geodataframe(trace_df, 'matched_lat', 'matched_long')
         matched_gdf['type'] = 'matched'
 
-        print(f"Map Matched with radius {search_radius}")
+        print(f"Map Matched with options: {match_options}")
 
         # Append matched_gdf to full_geojson
         matched_geojson = json.loads(matched_gdf.to_json())

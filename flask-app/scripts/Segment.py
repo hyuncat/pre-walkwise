@@ -42,8 +42,9 @@ class Segment:
         gps_df_segments = []
         for i in range(len(split_indices)-1):
             one_segment_df = gps_df.iloc[split_indices[i]:split_indices[i+1]].copy()
-            one_segment_df.loc[:, 'segment'] = i  # Assign segment number
-            gps_df_segments.append(one_segment_df)
+            if not one_segment_df.empty:  # Check if the DataFrame is not empty
+                one_segment_df['segment'] = i  # Assign segment number
+                gps_df_segments.append(one_segment_df)
             # print(f"Segment {i}: {len(one_segment_df)} rows")  # Debugging
         
         segment_df = pd.concat(gps_df_segments, ignore_index=True)
