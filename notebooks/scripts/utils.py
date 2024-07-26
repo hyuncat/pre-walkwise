@@ -1,6 +1,7 @@
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
+import colour
 
 # This file contains utility functions for preparing GPS data 
 # for kalman filtering and visualization
@@ -39,3 +40,30 @@ def create_geodataframe(gps_df, lat_col: str, long_col: str):
     gps_gdf['time'] = gps_gdf['time'].astype(str)
 
     return gps_gdf
+
+
+def darken_color(hex_color, decrease_by=0.2):
+    """
+    Return a darker version of the given hex color.
+    @param:
+        - hex_color: str in the format '#RRGGBB'
+        - decrease_by: float between 0 and 1
+    """
+    assert 0 <= decrease_by <= 1, "decrease_by must be between 0 and 1"
+    hsl_color = colour.Color(hex_color)  # Convert hex color to HSL
+    # Decrease luminance by [decrease_by], ensuring it doesn't go below 0
+    hsl_color.luminance = max(0, hsl_color.luminance - decrease_by)  
+    return hsl_color.hex_l
+
+def lighten_color(hex_color, increase_by=0.2):
+    """
+    Return a lighter version of the given hex color.
+    @param:
+        - hex_color: str in the format '#RRGGBB'
+        - increase_by: float between 0 and 1
+    """
+    assert 0 <= increase_by <= 1, "increase_by must be between 0 and 1"
+    hsl_color = colour.Color(hex_color)  # Convert hex color to HSL
+    # Increase luminance by [increase_by], ensuring it doesn't go above 1
+    hsl_color.luminance = min(1, hsl_color.luminance + increase_by) 
+    return hsl_color.hex_l
